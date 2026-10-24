@@ -1,6 +1,6 @@
-# [1.0.0](https://github.com/xeno-js/xeno-postgresql/compare/128a9f1c76923dd44c138f2fe1a3e28282c23823...v1.0.0) (2026-10-08)
+# [1.0.0](https://github.com/xeno-js/supabase/compare/28b15b63d40d406e3639e1f8f069c05fc40fa242...v1.0.0) (2026-10-24)
 
 ### Features
 
-- adding postgresql pkg
-  ([128a9f1](https://github.com/xeno-js/xeno-postgresql/commit/128a9f1c76923dd44c138f2fe1a3e28282c23823))
+- init project
+  ([28b15b6](https://github.com/xeno-js/supabase/commit/28b15b63d40d406e3639e1f8f069c05fc40fa242))
