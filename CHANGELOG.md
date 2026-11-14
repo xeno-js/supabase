@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/xeno-js/supabase/compare/v1.1.0...v1.2.0) (2026-11-14)
+
+### Features
+
+- add superadmin methods
+  ([1f796b9](https://github.com/xeno-js/supabase/commit/1f796b9bdc7a4ba877096e0fad70b35dd21d1bea))
+
 # [1.1.0](https://github.com/xeno-js/supabase/compare/v1.0.0...v1.1.0) (2026-11-14)
 
 ### Features
