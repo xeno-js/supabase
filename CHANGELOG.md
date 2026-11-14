@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/xeno-js/supabase/compare/v1.2.0...v1.2.1) (2026-11-14)
+
+### Bug Fixes
+
+- **superadmin-service:** resolved registration for superadmin service
+  ([16d4a9e](https://github.com/xeno-js/supabase/commit/16d4a9e7cdf4e131d519eb8f86b09542d6fc1e02))
+
 # [1.2.0](https://github.com/xeno-js/supabase/compare/v1.1.0...v1.2.0) (2026-11-14)
 
 ### Features
