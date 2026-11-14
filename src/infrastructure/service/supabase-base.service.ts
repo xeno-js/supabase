@@ -130,4 +130,26 @@ export abstract class BaseSupabaseAuthService
     const claims = this._mapper.map(data.user)
     return Result.ok(claims)
   }
+
+  public async listUsers(page = 1, perPage = 50): Promise<ResultType<AuthClaims[]>> {
+    const { data, error } = await this._supabase.auth.admin.listUsers({
+      page,
+      perPage,
+    })
+
+    if (Guards.isDefined(error)) {
+      return Result.fail(AppError.authFailed('SupabaseAuthService', error.message))
+    }
+
+    const claimsList = data.users.map((user) => this._mapper.map(user))
+    return Result.ok(claimsList)
+  }
+
+  public async deleteUser(userId: string): Promise<ResultType<void>> {
+    const { error } = await this._supabase.auth.admin.deleteUser(userId)
+    if (Guards.isDefined(error)) {
+      return Result.fail(AppError.authFailed('SupabaseAuthService', error.message))
+    }
+    return Result.ok(undefined)
+  }
 }
