@@ -1,6 +1,6 @@
 {
   "name": "@xeno-js/supabase",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Supabase authentication integration (Standard and SSR) for Xeno.js with session management, claims mapping, and TypeScript support.",
   "repository": {
     "type": "git",
