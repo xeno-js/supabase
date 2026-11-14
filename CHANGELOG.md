@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/xeno-js/supabase/compare/v1.2.1...v1.2.2) (2026-11-14)
+
+### Bug Fixes
+
+- **ssr-module:** resolved scoped registration
+  ([4940df7](https://github.com/xeno-js/supabase/commit/4940df79c8e8dc97503bc8c0f253358e8b9cce2c))
+
 ## [1.2.1](https://github.com/xeno-js/supabase/compare/v1.2.0...v1.2.1) (2026-11-14)
 
 ### Bug Fixes
