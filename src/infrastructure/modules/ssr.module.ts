@@ -25,42 +25,6 @@ export class SsrModule<TRegistry extends XenoRegistry = XenoRegistry> {
     const module = new AuthModule<TRegistry>()
     return {
       configure: async (container: IServiceContainer<TRegistry>) => {
-        const serviceRoleKey = options.serviceRoleKey
-        if (Guards.isDefined(serviceRoleKey)) {
-          const adminInputFactory: SupabaseServerClientInput = {
-            url: options.url,
-            key: serviceRoleKey,
-            redirectTo: options.redirectTo,
-            cookieHandler: ssrConfig.cookieHandler ?? container.resolve(TOKENS.COOKIE_HANDLER),
-            options: {
-              ...ssrConfig.options,
-              auth: {
-                flowType: ssrConfig.options?.auth?.flowType ?? 'pkce',
-                detectSessionInUrl: ssrConfig.options?.auth?.detectSessionInUrl ?? false,
-                autoRefreshToken: ssrConfig.options?.auth?.autoRefreshToken ?? false,
-                persistSession: ssrConfig.options?.auth?.persistSession ?? true,
-              },
-              cookieEncoding: ssrConfig.cookieEncoding,
-              cookies: {
-                getAll: () =>
-                  (ssrConfig.cookieHandler ?? container.resolve(TOKENS.COOKIE_HANDLER)).getAll(),
-                setAll: (cookies) =>
-                  (ssrConfig.cookieHandler ?? container.resolve(TOKENS.COOKIE_HANDLER)).setAll(
-                    cookies,
-                  ),
-              },
-              cookieOptions: {
-                path: ssrConfig.cookieOptions?.path ?? '/',
-                httpOnly: ssrConfig.cookieOptions?.httpOnly ?? true,
-                secure: ssrConfig.cookieOptions?.secure ?? true,
-                sameSite: ssrConfig.cookieOptions?.sameSite ?? 'lax',
-              },
-            },
-          }
-          const adminService = new SupabaseServerClientFactory().create(adminInputFactory)
-          container.addScoped('superadminAuthService', () => adminService)
-        }
-
         await module.configure(container, {
           authService: (scope) => {
             const cookieHandler = ssrConfig.cookieHandler ?? scope.resolve(TOKENS.COOKIE_HANDLER)
@@ -126,6 +90,42 @@ export class SsrModule<TRegistry extends XenoRegistry = XenoRegistry> {
               : undefined,
           },
         })
+
+        const serviceRoleKey = options.serviceRoleKey
+        if (Guards.isDefined(serviceRoleKey)) {
+          const adminInputFactory: SupabaseServerClientInput = {
+            url: options.url,
+            key: serviceRoleKey,
+            redirectTo: options.redirectTo,
+            cookieHandler: ssrConfig.cookieHandler ?? container.resolve(TOKENS.COOKIE_HANDLER),
+            options: {
+              ...ssrConfig.options,
+              auth: {
+                flowType: ssrConfig.options?.auth?.flowType ?? 'pkce',
+                detectSessionInUrl: ssrConfig.options?.auth?.detectSessionInUrl ?? false,
+                autoRefreshToken: ssrConfig.options?.auth?.autoRefreshToken ?? false,
+                persistSession: ssrConfig.options?.auth?.persistSession ?? true,
+              },
+              cookieEncoding: ssrConfig.cookieEncoding,
+              cookies: {
+                getAll: () =>
+                  (ssrConfig.cookieHandler ?? container.resolve(TOKENS.COOKIE_HANDLER)).getAll(),
+                setAll: (cookies) =>
+                  (ssrConfig.cookieHandler ?? container.resolve(TOKENS.COOKIE_HANDLER)).setAll(
+                    cookies,
+                  ),
+              },
+              cookieOptions: {
+                path: ssrConfig.cookieOptions?.path ?? '/',
+                httpOnly: ssrConfig.cookieOptions?.httpOnly ?? true,
+                secure: ssrConfig.cookieOptions?.secure ?? true,
+                sameSite: ssrConfig.cookieOptions?.sameSite ?? 'lax',
+              },
+            },
+          }
+          const adminService = new SupabaseServerClientFactory().create(adminInputFactory)
+          container.addScoped('superadminAuthService', () => adminService)
+        }
       },
     }
   }

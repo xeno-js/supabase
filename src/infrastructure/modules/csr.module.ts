@@ -16,18 +16,6 @@ export class CsrModule<TRegistry extends XenoRegistry = XenoRegistry> {
 
     return {
       configure: async (container: IServiceContainer<TRegistry>) => {
-        const serviceRoleKey = options.serviceRoleKey
-        if (Guards.isDefined(serviceRoleKey)) {
-          const adminInputFactory: SupabaseClientInput = {
-            url: options.url,
-            key: serviceRoleKey, // Usiamo la service role key!
-            redirectTo: options.redirectTo,
-            options: csrConfig?.options,
-          }
-          const adminService = new SupabaseClientFactory().create(adminInputFactory)
-          container.addScoped('superadminAuthService', () => adminService)
-        }
-
         const inputFactory: SupabaseClientInput = {
           url: options.url,
           key: options.key,
@@ -41,6 +29,18 @@ export class CsrModule<TRegistry extends XenoRegistry = XenoRegistry> {
           authService: () => clientService,
           defaultCookieName: csrConfig?.cookieName ?? 'sb-access-token',
         })
+
+        const serviceRoleKey = options.serviceRoleKey
+        if (Guards.isDefined(serviceRoleKey)) {
+          const adminInputFactory: SupabaseClientInput = {
+            url: options.url,
+            key: serviceRoleKey,
+            redirectTo: options.redirectTo,
+            options: csrConfig?.options,
+          }
+          const adminService = new SupabaseClientFactory().create(adminInputFactory)
+          container.addScoped('superadminAuthService', () => adminService)
+        }
       },
     }
   }
