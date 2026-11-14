@@ -13,12 +13,13 @@ import { definePlugin, Guards } from '@xeno-js/core'
 import { CsrModule } from './modules/csr.module'
 
 export interface SupabaseAuthConfig<SchemaName extends string = 'public'> {
-  url: string,
-  key: string,
+  url: string
+  key: string
   redirectTo?: Optional<string>
+  serviceRoleKey?: Optional<string>
   ssr?: {
     options?: SupabaseClientOptions<SchemaName>
-    cookieEncoding?: "raw" | "base64url";
+    cookieEncoding?: 'raw' | 'base64url'
     cookieHandler?: Optional<ISsrCookieHandler>
     cookieOptions?: Optional<Partial<ISsrCookieToSet>>
     cookiePrefix?: Optional<string>
@@ -42,13 +43,14 @@ export const withSupabase = <
   TRegistry extends XenoRegistry = XenoRegistry,
   SchemaName extends string = 'public',
 >(
-  setupAction: SetupAction<SupabaseAuthConfig<SchemaName>, IConfigurationService>
+  setupAction: SetupAction<SupabaseAuthConfig<SchemaName>, IConfigurationService>,
 ): AuthPlugin<TRegistry> => {
   return definePlugin('auth', (builder, config) => {
     const options: SupabaseAuthConfig<SchemaName> = {
       url: config.get('SUPABASE_URL') ?? '',
       key: config.get('SUPABASE_KEY') ?? '',
-      redirectTo: config.get('SUPABASE_REDIRECT_TO')
+      redirectTo: config.get('SUPABASE_REDIRECT_TO'),
+      serviceRoleKey: config.get('SUPABASE_SERVICE_ROLE_KEY'),
     }
 
     setupAction(options, config)

@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+
 import type {
-    Provider,
-    Session as SupabaseSession,
-    SupabaseClient,
-    User,
+  Provider,
+  Session as SupabaseSession,
+  SupabaseClient,
+  User,
 } from '@supabase/supabase-js'
-import type { AuthClaims, Maybe, Optional, Session } from '@xeno-js/core'
+import type { AuthClaims, ISuperAdminAuthService, Maybe, Optional, Session } from '@xeno-js/core'
 import type { IAuthService, IBaseAuthService, IBaseMapper, ResultType } from '@xeno-js/core'
 import { AppError, Result } from '@xeno-js/core'
 import { Guards } from '@xeno-js/core'
@@ -17,86 +19,115 @@ import { Guards } from '@xeno-js/core'
  * @since 2025-09-30
  * @link https://github.com/xeno-js/xeno-js
  */
-export abstract class BaseSupabaseAuthService implements IBaseAuthService, IAuthService {
-    constructor(
-        protected readonly _supabase: SupabaseClient,
-        protected readonly _mapper: IBaseMapper<User, AuthClaims>,
-        protected readonly _sessionMapper: IBaseMapper<SupabaseSession, Session>,
-        private readonly _opts: { redirectTo: Optional<string> },
-    ) { }
+export abstract class BaseSupabaseAuthService
+  implements IBaseAuthService, IAuthService, ISuperAdminAuthService
+{
+  constructor(
+    protected readonly _supabase: SupabaseClient,
+    protected readonly _mapper: IBaseMapper<User, AuthClaims>,
+    protected readonly _sessionMapper: IBaseMapper<SupabaseSession, Session>,
+    private readonly _opts: { redirectTo: Optional<string> },
+  ) {}
 
-    public async authenticate(token: string): Promise<ResultType<AuthClaims>> {
-        const { data, error } = await this._supabase.auth.getUser(token)
+  public async authenticate(token: string): Promise<ResultType<AuthClaims>> {
+    const { data, error } = await this._supabase.auth.getUser(token)
 
-        if (Guards.isDefined(error) || !Guards.isDefined(data.user)) {
-            return Result.fail(
-                AppError.authFailed('SupabaseAuthenticationService', error?.message ?? 'Unknown error'),
-            )
-        }
-
-        const user = data.user
-        const claims = this._mapper.map(user)
-        return Result.ok(claims)
+    if (Guards.isDefined(error) || !Guards.isDefined(data.user)) {
+      return Result.fail(
+        AppError.authFailed('SupabaseAuthenticationService', error?.message ?? 'Unknown error'),
+      )
     }
 
-    public abstract isAuthenticated(): Promise<boolean> 
+    const user = data.user
+    const claims = this._mapper.map(user)
+    return Result.ok(claims)
+  }
 
-    public async exchangeCodeForSession(code: string): Promise<ResultType<Optional<Session>>> {
-        const { data, error } = await this._supabase.auth.exchangeCodeForSession(code)
-        if (Guards.isDefined(error) || !Guards.isDefined(data.session))
-            return Result.fail(
-                AppError.authFailed('SupabaseAuthenticationService', error?.message ?? 'Unknown error'),
-            )
+  public abstract isAuthenticated(): Promise<boolean>
 
-        const session = data.session
+  public async exchangeCodeForSession(code: string): Promise<ResultType<Optional<Session>>> {
+    const { data, error } = await this._supabase.auth.exchangeCodeForSession(code)
+    if (Guards.isDefined(error) || !Guards.isDefined(data.session))
+      return Result.fail(
+        AppError.authFailed('SupabaseAuthenticationService', error?.message ?? 'Unknown error'),
+      )
 
-        if (Guards.isDefined(session)) return Result.ok(this._sessionMapper.map(session))
+    const session = data.session
 
-        return Result.ok()
+    if (Guards.isDefined(session)) return Result.ok(this._sessionMapper.map(session))
+
+    return Result.ok()
+  }
+
+  public async signInWithProvider(provider: Provider): Promise<ResultType<{ url: string }>> {
+    const { data, error } = await this._supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: this._opts.redirectTo },
+    })
+
+    if (Guards.isDefined(error) || Guards.isNullOrEmpty(data.url)) {
+      return Result.fail(
+        AppError.authFailed('SupabaseFrontendAuthService', error?.message ?? 'Unexpected error'),
+      )
     }
 
-    public async signInWithProvider(provider: Provider): Promise<ResultType<{ url: string }>> {
-        const { data, error } = await this._supabase.auth.signInWithOAuth({
-            provider,
-            options: { redirectTo: this._opts.redirectTo },
-        })
+    return Result.ok({ url: data.url })
+  }
 
-        if (Guards.isDefined(error) || Guards.isNullOrEmpty(data.url)) {
-            return Result.fail(
-                AppError.authFailed('SupabaseFrontendAuthService', error?.message ?? 'Unexpected error'),
-            )
-        }
+  public abstract getSession(): Promise<ResultType<Maybe<Session>>>
 
-        return Result.ok({ url: data.url })
+  public async getUser(): Promise<ResultType<Maybe<AuthClaims>>> {
+    const { data, error } = await this._supabase.auth.getUser()
+    if (Guards.isDefined(error)) {
+      return Result.fail(AppError.authFailed('SupabaseFrontendAuthService', error.message))
     }
+    const user = data.user
+    if (Guards.isDefined(user)) return Result.ok(this._mapper.map(user))
 
-    public abstract getSession(): Promise<ResultType<Maybe<Session>>>
+    return Result.ok()
+  }
 
-    public async getUser(): Promise<ResultType<Maybe<AuthClaims>>> {
-        const { data, error } = await this._supabase.auth.getUser()
-        if (Guards.isDefined(error)) {
-            return Result.fail(AppError.authFailed('SupabaseFrontendAuthService', error.message))
-        }
-        const user = data.user
-        if (Guards.isDefined(user)) return Result.ok(this._mapper.map(user))
-
-        return Result.ok()
+  public async signOut(): Promise<ResultType<void>> {
+    const { error } = await this._supabase.auth.signOut()
+    if (Guards.isDefined(error)) {
+      return Result.fail(AppError.authFailed('SupabaseFrontendAuthService', error.message))
     }
+    return Result.ok()
+  }
 
-    public async signOut(): Promise<ResultType<void>> {
-        const { error } = await this._supabase.auth.signOut()
-        if (Guards.isDefined(error)) {
-            return Result.fail(AppError.authFailed('SupabaseFrontendAuthService', error.message))
-        }
-        return Result.ok()
+  public async getSessionToken(): Promise<ResultType<Optional<string>>> {
+    const sessionResult = await this.getSession()
+    if (!sessionResult.isOk()) {
+      return Result.fail(sessionResult.getErrorOrThrow())
     }
+    const session = sessionResult.getValueOrThrow()
+    return Result.ok(session?.accessToken)
+  }
 
-    public async getSessionToken(): Promise<ResultType<Optional<string>>> {
-        const sessionResult = await this.getSession()
-        if (!sessionResult.isOk()) {
-            return Result.fail(sessionResult.getErrorOrThrow())
-        }
-        const session = sessionResult.getValueOrThrow()
-        return Result.ok(session?.accessToken)
+  public async updateIdentity(
+    userId: string,
+    data: {
+      app_metadata?: { roles?: string[]; permissions?: string[]; tenant_id?: Optional<string> }
+      user_metadata?: Record<string, unknown>
+      email?: string
+      password?: string
+    },
+  ): Promise<ResultType<void>> {
+    const { error } = await this._supabase.auth.admin.updateUserById(userId, data)
+    if (Guards.isDefined(error)) {
+      return Result.fail(AppError.authFailed('SupabaseAuthService', error.message))
     }
+    return Result.ok(undefined)
+  }
+
+  public async getUserById(userId: string): Promise<ResultType<AuthClaims>> {
+    const { data, error } = await this._supabase.auth.admin.getUserById(userId)
+    if (Guards.isDefined(error) || !Guards.isDefined(data.user)) {
+      return Result.fail(
+        AppError.notFound('SupabaseAuthService', error?.message ?? 'User not found'),
+      )
+    }
+    const claims = this._mapper.map(data.user)
+    return Result.ok(claims)
+  }
 }

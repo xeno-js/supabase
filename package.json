@@ -80,8 +80,8 @@
     "node": ">=20.0.0"
   },
   "peerDependencies": {
-    "@xeno-js/core": "^4.0.0",
-    "@supabase/ssr": "^0.12.7"
+    "@supabase/ssr": "^0.12.7",
+    "@xeno-js/core": "^4.2.1"
   },
   "peerDependenciesMeta": {
     "@supabase/ssr": {
@@ -95,7 +95,7 @@
     "@supabase/ssr": "^0.12.7",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^5.0.1",
-    "@xeno-js/core": "^4.0.0",
+    "@xeno-js/core": "^4.2.1",
     "conventional-changelog": "^8.1.3",
     "conventional-changelog-angular": "^9.4.0",
     "conventional-changelog-cli": "^5.0.0",
@@ -109,7 +109,7 @@
     "tsc-alias": "^1.9.5",
     "tsup": "^8.5.1",
     "typescript": "^5.8.0",
-    "typescript-eslint": "^8.70.1",
+    "typescript-eslint": "^8.72.2",
     "vitest": "^5.0.1"
   },
   "dependencies": {
