@@ -81,7 +81,7 @@
   },
   "peerDependencies": {
     "@supabase/ssr": "^0.12.7",
-    "@xeno-js/core": "^4.2.2"
+    "@xeno-js/core": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "@supabase/ssr": {
@@ -95,7 +95,7 @@
     "@supabase/ssr": "^0.12.7",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^5.0.1",
-    "@xeno-js/core": "^4.2.2",
+    "@xeno-js/core": "^5.0.0",
     "conventional-changelog": "^8.1.3",
     "conventional-changelog-angular": "^9.4.0",
     "conventional-changelog-cli": "^5.0.0",

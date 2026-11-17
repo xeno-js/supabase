@@ -1,12 +1,20 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-
 import type {
+  Pagination,
   Provider,
   Session as SupabaseSession,
   SupabaseClient,
   User,
 } from '@supabase/supabase-js'
-import type { AuthClaims, ISuperAdminAuthService, Maybe, Optional, Session } from '@xeno-js/core'
+import type {
+  AuthClaims,
+  Dictionary,
+  IPaginatedResult,
+  ISuperAdminAuthService,
+  Maybe,
+  Optional,
+  Session,
+  UpdateIdentityDto,
+} from '@xeno-js/core'
 import type { IAuthService, IBaseAuthService, IBaseMapper, ResultType } from '@xeno-js/core'
 import { AppError, Result } from '@xeno-js/core'
 import { Guards } from '@xeno-js/core'
@@ -45,8 +53,11 @@ export abstract class BaseSupabaseAuthService
 
   public abstract isAuthenticated(): Promise<boolean>
 
-  public async exchangeCodeForSession(code: string): Promise<ResultType<Optional<Session>>> {
-    const { data, error } = await this._supabase.auth.exchangeCodeForSession(code)
+  public async exchangeCodeForSession(
+    code: string,
+    flowId?: string,
+  ): Promise<ResultType<Optional<Session>>> {
+    const { data, error } = await this._supabase.auth.exchangeCodeForSession(code, { flowId })
     if (Guards.isDefined(error) || !Guards.isDefined(data.session))
       return Result.fail(
         AppError.authFailed('SupabaseAuthenticationService', error?.message ?? 'Unknown error'),
@@ -59,10 +70,18 @@ export abstract class BaseSupabaseAuthService
     return Result.ok()
   }
 
-  public async signInWithProvider(provider: Provider): Promise<ResultType<{ url: string }>> {
+  public async signInWithProvider(
+    provider: Provider,
+    options?: {
+      redirectTo?: string
+      scopes?: string
+      queryParams?: Dictionary<string>
+      skipBrowserRedirect?: boolean
+    },
+  ): Promise<ResultType<{ url: string }>> {
     const { data, error } = await this._supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: this._opts.redirectTo },
+      options: { ...options, redirectTo: this._opts.redirectTo },
     })
 
     if (Guards.isDefined(error) || Guards.isNullOrEmpty(data.url)) {
@@ -87,8 +106,8 @@ export abstract class BaseSupabaseAuthService
     return Result.ok()
   }
 
-  public async signOut(): Promise<ResultType<void>> {
-    const { error } = await this._supabase.auth.signOut()
+  public async signOut(scope?: 'global' | 'local' | 'others'): Promise<ResultType<void>> {
+    const { error } = await this._supabase.auth.signOut({ scope })
     if (Guards.isDefined(error)) {
       return Result.fail(AppError.authFailed('SupabaseFrontendAuthService', error.message))
     }
@@ -104,15 +123,7 @@ export abstract class BaseSupabaseAuthService
     return Result.ok(session?.accessToken)
   }
 
-  public async updateIdentity(
-    userId: string,
-    data: {
-      app_metadata?: { roles?: string[]; permissions?: string[]; tenant_id?: Optional<string> }
-      user_metadata?: Record<string, unknown>
-      email?: string
-      password?: string
-    },
-  ): Promise<ResultType<void>> {
+  public async updateIdentity(userId: string, data: UpdateIdentityDto): Promise<ResultType<void>> {
     const { error } = await this._supabase.auth.admin.updateUserById(userId, data)
     if (Guards.isDefined(error)) {
       return Result.fail(AppError.authFailed('SupabaseAuthService', error.message))
@@ -131,7 +142,10 @@ export abstract class BaseSupabaseAuthService
     return Result.ok(claims)
   }
 
-  public async listUsers(page = 1, perPage = 50): Promise<ResultType<AuthClaims[]>> {
+  public async listUsers(
+    page = 1,
+    perPage = 50,
+  ): Promise<ResultType<IPaginatedResult<AuthClaims>>> {
     const { data, error } = await this._supabase.auth.admin.listUsers({
       page,
       perPage,
@@ -141,12 +155,31 @@ export abstract class BaseSupabaseAuthService
       return Result.fail(AppError.authFailed('SupabaseAuthService', error.message))
     }
 
-    const claimsList = data.users.map((user) => this._mapper.map(user))
-    return Result.ok(claimsList)
+    const items = data.users.map((user) => this._mapper.map(user))
+    const paginated = data as {
+      users: User[]
+      aud: string
+    } & Pagination
+
+    const total = paginated.total ?? items.length
+
+    const totalPages = Math.ceil(total / perPage)
+
+    const paginatedResult: IPaginatedResult<AuthClaims> = {
+      items,
+      total,
+      page,
+      pageSize: perPage,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    }
+
+    return Result.ok(paginatedResult)
   }
 
-  public async deleteUser(userId: string): Promise<ResultType<void>> {
-    const { error } = await this._supabase.auth.admin.deleteUser(userId)
+  public async deleteUser(userId: string, softDelete?: boolean): Promise<ResultType<void>> {
+    const { error } = await this._supabase.auth.admin.deleteUser(userId, softDelete)
     if (Guards.isDefined(error)) {
       return Result.fail(AppError.authFailed('SupabaseAuthService', error.message))
     }
