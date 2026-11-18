@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/xeno-js/supabase/compare/v1.2.2...v1.2.3) (2026-11-17)
+
+### Bug Fixes
+
+- update core package
+  ([3d6ea96](https://github.com/xeno-js/supabase/commit/3d6ea969d31563783232dcae2dcbb2e31b97052e))
+
 ## [1.2.2](https://github.com/xeno-js/supabase/compare/v1.2.1...v1.2.2) (2026-11-14)
 
 ### Bug Fixes

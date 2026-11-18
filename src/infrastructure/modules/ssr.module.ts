@@ -1,17 +1,16 @@
+import { createServerClient } from '@supabase/ssr'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   AuthModule,
   Guards,
   type IServiceContainer,
-  type ISsrCookie,
-  type ISsrCookieToSet,
+  type ISsrCookieHandler,
   TOKENS,
   type XenoRegistry,
 } from '@xeno-js/core'
 
-import {
-  SupabaseServerClientFactory,
-  type SupabaseServerClientInput,
-} from '../factories/supabase-ssr.factory'
+import { ClientAuthFactory } from '../factories/supabase-client.factory'
+import { SupabaseServerClientFactory } from '../factories/supabase-ssr.factory'
 import { SupabaseSsrTokenExtractor } from '../service/extract-ssr-bearer.extractor'
 import type { SupabaseAuthConfig } from '../supabase.plugin'
 
@@ -25,41 +24,46 @@ export class SsrModule<TRegistry extends XenoRegistry = XenoRegistry> {
     const module = new AuthModule<TRegistry>()
     return {
       configure: async (container: IServiceContainer<TRegistry>) => {
+        const buildClientFactory = (cookieHandler: ISsrCookieHandler): ClientAuthFactory => {
+          const createClientFor = (key: string): SupabaseClient =>
+            createServerClient(options.url, key, {
+              ...ssrConfig.options,
+              auth: {
+                flowType: ssrConfig.options?.auth?.flowType ?? 'pkce',
+                detectSessionInUrl: ssrConfig.options?.auth?.detectSessionInUrl ?? false,
+                autoRefreshToken: ssrConfig.options?.auth?.autoRefreshToken ?? false,
+                persistSession: ssrConfig.options?.auth?.persistSession ?? true,
+              },
+              cookieEncoding: ssrConfig.cookieEncoding,
+              cookies: {
+                getAll: () => cookieHandler.getAll(),
+                setAll: (cookiesToSet) => cookieHandler.setAll(cookiesToSet),
+              },
+              cookieOptions: {
+                path: ssrConfig.cookieOptions?.path ?? '/',
+                httpOnly: ssrConfig.cookieOptions?.httpOnly ?? true,
+                secure: ssrConfig.cookieOptions?.secure ?? true,
+                sameSite: ssrConfig.cookieOptions?.sameSite ?? 'lax',
+              },
+            })
+
+          const adminClient = Guards.isDefined(options.serviceRoleKey)
+            ? createClientFor(options.serviceRoleKey)
+            : undefined
+
+          return new ClientAuthFactory(createClientFor(options.key), adminClient)
+        }
+
+        container.addScoped('clientAuthFactory', (scope) =>
+          buildClientFactory(ssrConfig.cookieHandler ?? scope.resolve(TOKENS.COOKIE_HANDLER)),
+        )
+
         await module.configure(container, {
           authService: (scope) => {
-            const cookieHandler = ssrConfig.cookieHandler ?? scope.resolve(TOKENS.COOKIE_HANDLER)
-
-            const inputFactory: SupabaseServerClientInput = {
-              url: options.url,
-              key: options.key,
-              redirectTo: options.redirectTo,
-              cookieHandler: ssrConfig.cookieHandler ?? scope.resolve(TOKENS.COOKIE_HANDLER),
-              options: {
-                ...ssrConfig.options,
-                auth: {
-                  flowType: ssrConfig.options?.auth?.flowType ?? 'pkce',
-                  detectSessionInUrl: ssrConfig.options?.auth?.detectSessionInUrl ?? false,
-                  autoRefreshToken: ssrConfig.options?.auth?.autoRefreshToken ?? false,
-                  persistSession: ssrConfig.options?.auth?.persistSession ?? true,
-                },
-                cookieEncoding: ssrConfig.cookieEncoding,
-                cookies: {
-                  getAll(): ISsrCookie[] {
-                    return cookieHandler.getAll()
-                  },
-                  setAll(cookiesToSet: ISsrCookieToSet[]): void {
-                    cookieHandler.setAll(cookiesToSet)
-                  },
-                },
-                cookieOptions: {
-                  path: ssrConfig.cookieOptions?.path ?? '/',
-                  httpOnly: ssrConfig.cookieOptions?.httpOnly ?? true,
-                  secure: ssrConfig.cookieOptions?.secure ?? true,
-                  sameSite: ssrConfig.cookieOptions?.sameSite ?? 'lax',
-                },
-              },
-            }
-            return new SupabaseServerClientFactory().create(inputFactory)
+            const factory = scope.resolve('clientAuthFactory')
+            return new SupabaseServerClientFactory(factory.get<SupabaseClient>('public')).create(
+              options.redirectTo ?? '',
+            )
           },
           tokenExtractor: (scope) => ({
             extract: (headers) => {
@@ -91,40 +95,12 @@ export class SsrModule<TRegistry extends XenoRegistry = XenoRegistry> {
           },
         })
 
-        const serviceRoleKey = options.serviceRoleKey
-        if (Guards.isDefined(serviceRoleKey)) {
+        if (Guards.isDefined(options.serviceRoleKey)) {
           container.addScoped('superadminAuthService', (scope) => {
-            const adminInputFactory: SupabaseServerClientInput = {
-              url: options.url,
-              key: serviceRoleKey,
-              redirectTo: options.redirectTo,
-              cookieHandler: ssrConfig.cookieHandler ?? scope.resolve(TOKENS.COOKIE_HANDLER),
-              options: {
-                ...ssrConfig.options,
-                auth: {
-                  flowType: ssrConfig.options?.auth?.flowType ?? 'pkce',
-                  detectSessionInUrl: ssrConfig.options?.auth?.detectSessionInUrl ?? false,
-                  autoRefreshToken: ssrConfig.options?.auth?.autoRefreshToken ?? false,
-                  persistSession: ssrConfig.options?.auth?.persistSession ?? true,
-                },
-                cookieEncoding: ssrConfig.cookieEncoding,
-                cookies: {
-                  getAll: () =>
-                    (ssrConfig.cookieHandler ?? scope.resolve(TOKENS.COOKIE_HANDLER)).getAll(),
-                  setAll: (cookies) =>
-                    (ssrConfig.cookieHandler ?? scope.resolve(TOKENS.COOKIE_HANDLER)).setAll(
-                      cookies,
-                    ),
-                },
-                cookieOptions: {
-                  path: ssrConfig.cookieOptions?.path ?? '/',
-                  httpOnly: ssrConfig.cookieOptions?.httpOnly ?? true,
-                  secure: ssrConfig.cookieOptions?.secure ?? true,
-                  sameSite: ssrConfig.cookieOptions?.sameSite ?? 'lax',
-                },
-              },
-            }
-            return new SupabaseServerClientFactory().create(adminInputFactory)
+            const factory = scope.resolve('clientAuthFactory')
+            return new SupabaseServerClientFactory(factory.get<SupabaseClient>('admin')).create(
+              options.redirectTo ?? '',
+            )
           })
         }
       },
