@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/xeno-js/supabase/compare/v1.2.3...v1.2.4) (2026-11-18)
+
+### Bug Fixes
+
+- update shared package and auth factory client
+  ([04e50fb](https://github.com/xeno-js/supabase/commit/04e50fb4e9268f0aad7f3b4a75fdcf9d17729a5b))
+
 ## [1.2.3](https://github.com/xeno-js/supabase/compare/v1.2.2...v1.2.3) (2026-11-17)
 
 ### Bug Fixes
