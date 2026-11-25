@@ -1,3 +1,5 @@
+## [1.2.5](https://github.com/xeno-js/supabase/compare/v1.2.4...v1.2.5) (2026-11-25)
+
 ## [1.2.4](https://github.com/xeno-js/supabase/compare/v1.2.3...v1.2.4) (2026-11-18)
 
 ### Bug Fixes
